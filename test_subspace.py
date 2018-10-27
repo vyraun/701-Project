@@ -57,7 +57,7 @@ skip = False
 with open("quora_duplicate_questions.tsv") as tsv:
     for line in csv.reader(tsv, dialect="excel-tab"): #You can also use delimiter="\t" rather than giving a dialect.
         if skip:
-            print("Line {0}".format(i))
+            #print("Line {0}".format(i))
             #encode_bow(line[3], line[4], i)
             if line[3]!='' and line[4]!='':
                 encode_subspace(line[3], line[4], i)
@@ -66,9 +66,7 @@ with open("quora_duplicate_questions.tsv") as tsv:
                 if i == 100:
                     break
         else:
-            skip = True
-
-print(len(question_1), len(question_2), len(question_1[0]), len(question_2[0]))      
+            skip = True     
 
 #question_1 = np.asarray(question_1)
 #question_2 = np.asarray(question_2)
@@ -109,16 +107,3 @@ y_pred = clf.predict(X)
 accuracy = accuracy_score(y, y_pred)
 
 print("Accuracy (train) = {}".format(accuracy * 100))
-
-scores = np.asarray(scores, dtype='float32')
-print(scores)
-predictions = [round(x) for x in scores]
-
-c = 0
-
-for x, y in zip(predictions, labels):
-    if x==y:
-        c += 1
-    print(x, y)
-
-print("Accuracy = {}".format(c/len(scores)))
