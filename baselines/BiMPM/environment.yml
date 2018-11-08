@@ -1,0 +1,13 @@
+name: bimpm
+channels:
+  - defaults
+dependencies:
+  - python=3.6.5
+  - numpy
+  - nltk
+  - docopt
+  - pip:
+    - tqdm
+    - torch
+    - torchtext
+    - spacy
