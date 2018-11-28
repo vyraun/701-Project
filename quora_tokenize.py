@@ -38,8 +38,8 @@ def tokenize_quora(filename):
                     q2_tags = [t[1] for t in q2_tags]
                     f.write(' '.join([t for t in q1 + q1_tags]) + "\t" + ' '.join([t for t in q2 + q2_tags]) + "\t" + str(line[5]) + "\n")
                     i = i + 1
-                    if i == 100:
-                        break
+                    #if i == 100:
+                    #    break
             else:
                 skip = True
 
