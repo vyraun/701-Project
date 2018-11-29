@@ -30,18 +30,19 @@ Options:
     --char-lstm-layers=<int>                number of layers in character lstm [default: 1]
     --bilstm-layers=<int>                   number of layers in bidi lstm [default: 1]
     --clip-grad=<float>                     gradient clipping [default: 5.0]
-    --log-every=<int>                       log every [default: 10]
+    --log-every=<int>                       log every [default: 2]
     --max-epoch=<int>                       max epoch [default: 50]
     --patience=<int>                        wait for how many iterations to decay learning rate [default: 5]
     --max-num-trial=<int>                   terminate training after how many trials [default: 5]
     --lr-decay=<float>                      learning rate decay [default: 0.5]
     --lr=<float>                            learning rate [default: 0.001]
     --save-to=<file>                        model save path
-    --valid-niter=<int>                     perform validation after how many iterations [default: 1600]
+    --valid-niter=<int>                     perform validation after how many iterations [default: 5]
     --dropout=<float>                       dropout [default: 0.2]
     --data=<str>                            type of dataset [default: quora]
     --perspective=<int>                     number of perspectives for the model [default: 20]
     --char=<bool>                           whether to use character embeddings or not, default is true [default: True]
+    --len-clip=<int>                        the length at which to clip the sentences [default: 50]
 """
 
 from docopt import docopt
@@ -74,9 +75,8 @@ def train(args):
         #vocab_data = utils.load_vocab(vocab_path)
         network = Model(args, 2)
 
-    #if args['--cuda'] == str(1):
-        #bp()
-        #network.model = network.model.cuda()
+    if args['--cuda'] == str(1):
+        network.model = network.model.cuda()
 
     epoch = 0
     train_iter = 0
@@ -85,7 +85,7 @@ def train(args):
     rep_examples = 0
     cum_examples = 0
     batch_size = int(args['--batch-size'])
-    #optimiser = torch.optim.Adam(list(network.model.parameters()), lr=lr)
+    optimiser = torch.optim.Adam(list(network.model.parameters()), lr=lr)
     begin_time = time.time()
     prev_acc = 0
     val_hist = []
@@ -99,15 +99,14 @@ def train(args):
         epoch += 1
         
         for labels, p1, p2 in loader.batch_iter(train_data, batch_size):
-            #optimiser.zero_grad()
+            optimiser.zero_grad()
             train_iter += 1
-            bp()
             _, iter_loss = network.forward(labels, p1, p2)
             report_loss += iter_loss.item()
             cum_loss += iter_loss.item()
 
             iter_loss.backward()
-            #nn.utils.clip_grad_norm_(list(network.model.parameters()), clip_grad)
+            nn.utils.clip_grad_norm_(list(network.model.parameters()), clip_grad)
             optimiser.step()
  
             rep_examples += batch_size
@@ -125,16 +124,16 @@ def train(args):
 
                 cum_loss, cum_examples = 0, 0
                 print('Begin Validation .. ', file=sys.stderr)
-                #network.model.eval()
+                network.model.eval()
                 total_examples = 0
                 total_correct = 0
                 val_loss, val_examples = 0, 0
-                for val_labels, valp1, valp2, idx in utils.batch_iter(dev_data, batch_size):
+                for val_labels, valp1, valp2 in loader.batch_iter(dev_data, batch_size):
                     total_examples += len(val_labels)
-                    #pred, _ = network.forward(val_labels, valp1, valp2)
+                    pred, _ = network.forward(val_labels, valp1, valp2)
                     pred = softmax(pred)
                     _, pred = pred.max(dim=1)
-                    #label_cor = network.get_label(val_labels)
+                    label_cor = network.get_label(val_labels)
                     total_correct += (pred == label_cor).sum().float()
                 final_acc = total_correct / total_examples
  
@@ -145,8 +144,8 @@ def train(args):
                     patience = 0
                     prev_acc = val_acc
                     print('Saving model and optimiser state', file=sys.stderr)
-                    #torch.save(network.model, model_path)
-                    #torch.save(optimiser.state_dict(), optim_path)
+                    torch.save(network.model, model_path)
+                    torch.save(optimiser.state_dict(), optim_path)
                 else:
                     patience += 1
                     print('hit patience %d' %(patience), file=sys.stderr)
@@ -160,9 +159,9 @@ def train(args):
                         lr = lr * float(args['--lr-decay'])
                         print('load previously best model and decay learning rate to %f' %(lr), file=sys.stderr)
 
-                        #network.model = torch.load(model_path)
-                        #if args['--cuda'] == str(1):
-                        #    network.model = network.model.cuda()
+                        network.model = torch.load(model_path)
+                        if args['--cuda'] == str(1):
+                            network.model = network.model.cuda()
 
                         print('restore parameters of the optimizers', file=sys.stderr)
                         optimiser = torch.optim.Adam(list(network.model.parameters()), lr=lr)

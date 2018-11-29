@@ -1,0 +1,103 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from pdb import set_trace as bp
+
+class Matcher(nn.Module):
+
+    def __init__(self, args, class_size, wembeddings, word_vocab):
+        super(Matcher, self).__init__()
+
+        self.w_embed_size = int(args['--embed-size'])
+        self.dropout_val = float(args['--dropout'])
+        self.bi_hidden = int(args['--bi-hidden-size'])
+        self.char_hidden = int(args['--char-hidden-size'])
+        self.rnn_type = args['--rnn-type']
+        self.context_layer_size = int(args['--bilstm-layers'])
+        self.classes = class_size
+
+        self.mu_list = [1.0]
+        for i in range(1, 10, 2):
+            self.mu_list.append(i * 0.1)
+            self.mu_list.append(- i * 0.1)
+        self.sigma = 0.1
+
+        #initliase word embeddings
+        self.wembeddings = nn.Embedding(num_embeddings=word_vocab,\
+                                        embedding_dim=self.w_embed_size)
+
+        #initliase with pre-trained embeddings
+        self.wembeddings.weight.data.copy_(torch.from_numpy(wembeddings))
+
+        #dropout layer
+        self.dropout = nn.Dropout(self.dropout_val)
+
+        self.ltr = nn.Linear(len(self.mu_list), self.classes)
+        self.init_weights()
+
+    def init_weights(self):
+        for param in list(self.parameters()):
+            nn.init.uniform_(param, -0.01, 0.01)
+ 
+    def cosine_similarity(self, prod, norm):
+        # As set in PyTorch documentation
+        eps = 1e-8
+        norm = norm * (norm > eps).float() + eps * (norm <= eps).float()
+
+        return prod / norm
+
+    def attentive_matching(self, p1, p2, w_matrix_att, w_matrix_max):
+        #Perform both attentive types of matching together
+        p1_norm = p1.norm(p = 2, dim = 2, keepdim=True)
+        p2_norm = p2.norm(p = 2, dim = 2, keepdim=True)
+
+        full_mat = torch.matmul(p1.permute(1,0,2), p2.permute(1, 2, 0))
+        deno_mat = torch.matmul(p1_norm.permute(1, 0, 2), p2_norm.permute(1, 2, 0))
+        alpha_mat = self.cosine_similarity(full_mat, deno_mat)
+
+        _, max_index = torch.max(alpha_mat, dim=2)
+        max_index = torch.stack([max_index] * self.bi_hidden, dim=2)
+        
+        h_mat = torch.bmm(alpha_mat, p2.transpose(1, 0))
+        alpha_mat = alpha_mat.sum(dim=2, keepdim=True)
+        resultant = h_mat / alpha_mat
+
+        v1 = resultant.transpose(1, 0).unsqueeze(-1) * w_matrix_att
+        v2 = p1.unsqueeze(-1) * w_matrix_att
+        result_match = F.cosine_similarity(v1, v2, dim=2)
+
+        out_mat = torch.gather(p2.transpose(1, 0), 1, max_index)
+        v1 = out_mat.transpose(1, 0).unsqueeze(-1) * w_matrix_max
+        v2 = p1.unsqueeze(-1) * w_matrix_max
+        result_max = F.cosine_similarity(v1, v2, dim=2)
+        
+        return result_match, result_max
+
+    def forward(self, p1, p2, p1_len, p2_len):
+
+        p1_input = self.wembeddings(p1)
+        p2_input = self.wembeddings(p2)
+        p1_norm = p1_input.norm(p=2, dim=2, keepdim=True)
+        p2_norm = p2_input.norm(p=2, dim=2, keepdim=True)
+
+        norm_mat = torch.bmm(p1_norm, p2_norm.transpose(1, 2))
+        trans_matrix = torch.bmm(p1_input, p2_input.transpose(1, 2))
+
+        # Translation Matrix Constructed here (using cosine similarity)
+        trans_matrix = self.cosine_similarity(trans_matrix, norm_mat)
+        trans_features = 0
+        for i, each in enumerate(self.mu_list):
+            trans_matrix_res = torch.exp(-((trans_matrix - each) ** 2) / (2 * (self.sigma) ** 2))
+            trans_matrix_res = torch.log1p(trans_matrix_res.sum(dim=2))
+            trans_matrix_res = trans_matrix_res.sum(dim=1, keepdim=True)
+            if i == 0:
+                trans_features = trans_matrix_res
+            else:
+                trans_features = torch.cat([trans_features, trans_matrix_res], dim=1)
+
+        output = self.ltr(trans_features)
+        #att_p1_forw, attm_p1_forw = self.attentive_matching(context1_forw, context2_forw, self.w5, self.w7)
+        #att_p1_back, attm_p1_back = self.attentive_matching(context1_back, context2_back, self.w6, self.w8)
+        #att_p2_forw, attm_p2_forw = self.attentive_matching(context2_forw, context1_forw, self.w5, self.w7)
+        #att_p2_back, attm_p2_back = self.attentive_matching(context2_back, context1_back, self.w6, self.w8)
+        return output
