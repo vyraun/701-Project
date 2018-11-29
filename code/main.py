@@ -15,8 +15,11 @@ Options:
     --cuda=<bool>                           use GPU [default: 0]
     --train-src=<file>                      train source file [default: ../data/quora/small_train_tokenized.tsv]
     --dev-src=<file>                        dev source file [default: ../data/quora/small_dev_tokenized.tsv]
-    --test-src=<file>                       test source file [default: ../data/quora/test.tsv]
+    --test-src=<file>                       test source file [default: ../data/quora/test_tokenized.tsv]
     --vocab-src=<file>                      vocab source file [default: ../data/quora/vocab.pkl]
+    --aux-data-train=<file>                 auxilliary file for retrieval based testing [default: ../data/quora/small_train_tokenized.tsv]
+    --aux-data-dev=<file>                   auxilliary file for retrieval based testing [default: ../data/quora/small_dev_tokenized.tsv]
+    --aux-data-test=<file>                  auxilliary file for retrieval based testing [default: ../data/quora/test_tokenized.tsv]
     --model-path=<file>                     model path [default: ../data/models/model.bin]
     --optim-path=<file>                     optimiser state path [default: ../data/models/optim.bin]
     --glove-path=<file>                     pretrained glove embedding file [default: ../data/glove/glove.840B.300d.txt]
@@ -48,18 +51,18 @@ Options:
 
 from docopt import docopt
 from pdb import set_trace as bp
-#from vocab import Vocab
 from models.model import Model
 import utils.loader as loader
 import torch
 import torch.nn as nn
 import time
-#import pymagnitude
 import sys
 
 def train(args):
     train_path = args['--train-src']
     dev_path = args['--dev-src']
+    train_aux_path = args['--aux-data-train']
+    dev_aux_path = args['--aux-data-dev']
     vocab_path = args['--vocab-src']
     lr = float(args['--lr'])
     log_every = int(args['--log-every'])
@@ -69,11 +72,18 @@ def train(args):
     max_num_trials = int(args['--max-num-trial'])
     clip_grad = float(args['--clip-grad'])
     valid_iter = int(args['--valid-niter'])
-
+    model_type = int(args['--model-type'])
     if args['--data'] == 'quora':
-        train_data = loader.read_data(train_path, 'quora')
-        dev_data = loader.read_data(dev_path, 'quora')
-        #vocab_data = utils.load_vocab(vocab_path)
+        if model_type == 1 or model_type == 2:
+            train_data = loader.read_data(train_path, 'quora')
+            dev_data = loader.read_data(dev_path, 'quora')
+        elif model_type == 3:
+            train_data1 = loader.read_data(train_path, 'quora')
+            train_data2 = loader.read_data(train_aux_path, 'quora')
+            dev_data1 = loader.read_data(dev_path, 'quora')
+            dev_data2 = loader.read_data(dev_aux_path, 'quora')
+            train_data = (train_data1, train_data2)
+            dev_data = (dev_data1, dev_data2)
         network = Model(args, 2)
 
     if args['--cuda'] == str(1):
@@ -99,7 +109,7 @@ def train(args):
     while True:
         epoch += 1
         
-        for labels, p1, p2 in loader.batch_iter(train_data, batch_size):
+        for labels, p1, p2 in loader.batch_iter(model_type, train_data, batch_size):
             optimiser.zero_grad()
             train_iter += 1
             _, iter_loss = network.forward(labels, p1, p2)
@@ -129,7 +139,7 @@ def train(args):
                 total_examples = 0
                 total_correct = 0
                 val_loss, val_examples = 0, 0
-                for val_labels, valp1, valp2 in loader.batch_iter(dev_data, batch_size):
+                for val_labels, valp1, valp2 in loader.batch_iter(model_type, dev_data, batch_size):
                     total_examples += len(val_labels)
                     pred, _ = network.forward(val_labels, valp1, valp2)
                     pred = softmax(pred)
@@ -183,17 +193,23 @@ def train(args):
 
 def test(args):
     test_path = args['--test-src']
+    test_aux_path = args['--aux-data-test']
     model_path = args['--model-path']
     batch_size = int(args['--batch-size'])
     total_examples = 0
     total_correct = 0
-    vocab_path = args['--vocab-src'] 
+    vocab_path = args['--vocab-src']
+    model_type = int(args['--model-type'])
     softmax = torch.nn.Softmax(dim=1)
 
     if args['--data'] == 'quora':
-        test_data = utils.read_data(test_path, 'quora')
-        vocab_data = utils.load_vocab(vocab_path)
-        network = Model(args, vocab_data, 2)
+        if model_type == 1 or model_type == 2:
+            test_data = loader.read_data(test_path, 'quora')
+        else:
+            test_data1 = loader.read_data(test_path, 'quora')
+            test_data2 = loader.read_data(test_aux_path, 'quora')
+            test_data = (test_data1, test_data2)
+        network = Model(args, 2)
         network.model = torch.load(model_path)
 
     if args['--cuda'] == str(1):
@@ -201,7 +217,7 @@ def test(args):
         softmax = softmax.cuda()
 
     network.model.eval()
-    for labels, p1, p2, idx in utils.batch_iter(test_data, batch_size):
+    for labels, p1, p2 in loader.batch_iter(model_type, test_data, batch_size):
         total_examples += len(labels)
         print(total_examples)
         pred, _ = network.forward(labels, p1, p2)

@@ -53,8 +53,12 @@ class Matcher(nn.Module):
         self.dropout = nn.Dropout(self.dropout_val)
 
         self.attentive_linear = nn.Linear(self.bi_hidden * 4, len(self.mu_list))
-        self.ltr = nn.Linear(len(self.mu_list) * 2, self.classes)
-        self.ltr2 = nn.Linear(len(self.mu_list), self.classes)
+        if self.model_type == 1:
+            self.ltr = nn.Linear(len(self.mu_list), self.classes)
+        elif self.model_type == 2:
+            self.ltr = nn.Linear(len(self.mu_list) * 2, self.classes)
+        elif self.model_type == 3:
+            self.ltr = nn.Linear(len(self.mu_list) * 3, self.classes)
         self.init_weights()
 
     def init_weights(self):
@@ -97,10 +101,14 @@ class Matcher(nn.Module):
 
     def forward(self, p1, p2, p1_len, p2_len):
 
+        if self.model_type == 3:
+            p1, p1_aux = p1
+            p2, p2_aux = p2
+
         p1_input = self.wembeddings(p1)
         p2_input = self.wembeddings(p2)
 
-        if self.model_type == 3:
+        if self.model_type == 3 or self.model_type == 2:
             if self.rnn_type == 'gru':
                 context1_full, context1_lh = self.context(p1_input.transpose(0, 1))
                 context2_full, context2_lh = self.context(p2_input.transpose(0, 1))
@@ -128,8 +136,8 @@ class Matcher(nn.Module):
             else:
                 trans_features = torch.cat([trans_features, trans_matrix_res], dim=1)
 
-        if self.model_type == 2:
-            output = self.ltr2(trans_features)
+        if self.model_type == 1:
+            output = self.ltr(trans_features)
             return output
 
         # For Attentive Matching
@@ -151,6 +159,33 @@ class Matcher(nn.Module):
         output = self.attentive_linear(output)
 
         # Both functions combined together
-        output = torch.cat([output, trans_features], dim=-1)
-        output = self.ltr(output)
-        return output
+        if self.model_type == 2:
+            output = torch.cat([output, trans_features], dim=-1)
+            output = self.ltr(output)
+            return output
+
+        p1_aux_input = self.wembeddings(p1_aux)
+        p2_aux_input = self.wembeddings(p2_aux)
+        p1_aux_norm = p1_aux_input.norm(p=2, dim=2, keepdim=True)
+        p2_aux_norm = p2_aux_input.norm(p=2, dim=2, keepdim=True)
+
+        norm_mat = torch.bmm(p1_aux_norm, p2_aux_norm.transpose(1, 2))
+        trans_matrix = torch.bmm(p1_aux_input, p2_aux_input.transpose(1, 2))
+
+        # Translation Matrix Constructed here (using cosine similarity)
+        trans_matrix = self.cosine_similarity(trans_matrix, norm_mat)
+        trans_aux_features = 0
+        for i, each in enumerate(self.mu_list):
+            trans_matrix_res = torch.exp(-((trans_matrix - each) ** 2) / (2 * (self.sigma) ** 2))
+            trans_matrix_res = torch.log1p(trans_matrix_res.sum(dim=2))
+            trans_matrix_res = trans_matrix_res.sum(dim=1, keepdim=True)
+            if i == 0:
+                trans_aux_features = trans_matrix_res
+            else:
+                trans_aux_features = torch.cat([trans_aux_features, trans_matrix_res], dim=1)
+
+        if self.model_type == 3:
+            output = torch.cat([output, trans_features, trans_aux_features], dim=-1)
+            output = self.ltr(output)
+            return output
+
