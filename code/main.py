@@ -22,13 +22,13 @@ Options:
     --glove-path=<file>                     pretrained glove embedding file [default: ../data/glove/glove.840B.300d.txt]
     --seed=<int>                            seed [default: 0]
     --batch-size=<int>                      batch size [default: 32]
-    --rnn-type=<str>                        type of rnn (lstm, gru, rnn) [default: lstm]
+    --rnn-type=<str>                        type of rnn (lstm, gru, rnn) [default: gru]
     --embed-size=<int>                      embedding size [default: 300]
     --char-embed-size=<int>                 char embedding size [default: 20]
     --bi-hidden-size=<int>                  bidirectional lstm hidden size [default: 100]
     --char-hidden-size=<int>                character lstm hidden size [default: 50]
-    --char-lstm-layers=<int>                number of layers in character lstm [default: 1]
-    --bilstm-layers=<int>                   number of layers in bidi lstm [default: 1]
+    --char-rnn-layers=<int>                 number of layers in character lstm [default: 1]
+    --rnn-layers=<int>                      number of layers in bidi rnn [default: 1]
     --clip-grad=<float>                     gradient clipping [default: 5.0]
     --log-every=<int>                       log every [default: 2]
     --max-epoch=<int>                       max epoch [default: 50]
@@ -43,6 +43,7 @@ Options:
     --perspective=<int>                     number of perspectives for the model [default: 20]
     --char=<bool>                           whether to use character embeddings or not, default is true [default: True]
     --len-clip=<int>                        the length at which to clip the sentences [default: 50]
+    --model-type=<int>                      takes three options 1, 2 and 3 [default: 3]
 """
 
 from docopt import docopt
