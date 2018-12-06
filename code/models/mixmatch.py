@@ -100,10 +100,11 @@ class Matcher(nn.Module):
         return result_match, result_max
 
     def forward(self, p1, p2, p1_len, p2_len):
-
         if self.model_type == 3:
             p1, p1_aux = p1
             p2, p2_aux = p2
+            p1_len, p1_len_aux = p1_len
+            p2_len, p2_len_aux = p2_len
 
         p1_input = self.wembeddings(p1)
         p2_input = self.wembeddings(p2)
@@ -121,11 +122,21 @@ class Matcher(nn.Module):
         p1_norm = p1_input.norm(p=2, dim=2, keepdim=True)
         p2_norm = p2_input.norm(p=2, dim=2, keepdim=True)
 
+        p1_len = p1_len.unsqueeze(-1)
+        p2_len = p2_len.unsqueeze(-1)
+        masked_mat = torch.bmm(p1_len, p2_len.transpose(1, 2))
+
+        if self.model_type == 3:
+            p1_len_aux = p1_len_aux.unsqueeze(-1)
+            p2_len_sux = p2_len_aux.unsqueeze(-1)
+            masked_mat_aux = torch.bmm(p1_len, p2_len.transpose(1, 2))
+
         norm_mat = torch.bmm(p1_norm, p2_norm.transpose(1, 2))
         trans_matrix = torch.bmm(p1_input, p2_input.transpose(1, 2))
 
         # Translation Matrix Constructed here (using cosine similarity)
         trans_matrix = self.cosine_similarity(trans_matrix, norm_mat)
+        trans_matrix = trans_matrix * masked_mat
         trans_features = 0
         for i, each in enumerate(self.mu_list):
             trans_matrix_res = torch.exp(-((trans_matrix - each) ** 2) / (2 * (self.sigma) ** 2))
@@ -174,6 +185,7 @@ class Matcher(nn.Module):
 
         # Translation Matrix Constructed here (using cosine similarity)
         trans_matrix = self.cosine_similarity(trans_matrix, norm_mat)
+        trans_matrix = trans_matrix * masked_mat_aux
         trans_aux_features = 0
         for i, each in enumerate(self.mu_list):
             trans_matrix_res = torch.exp(-((trans_matrix - each) ** 2) / (2 * (self.sigma) ** 2))

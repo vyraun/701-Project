@@ -39,14 +39,27 @@ class Model(object):
         if self.cuda == str(1):
             self.criterion = self.criterion.cuda()
 
+    def get_masked_matrix(self, input_lengths):
+        matrix = []
+        for i in range(len(input_lengths)):
+            arr = [1 for j in range(input_lengths[i])]
+            for j in range(len(arr), self.clip_length):
+                arr.append(0)
+            matrix.append(arr)
+        return torch.FloatTensor(matrix)
+
     def forward(self, label, p1, p2, method='train'):
         if self.model_type == 1 or self.model_type == 2:
             word_tensor1, word_tensor2, label_tensor,\
                     p1_orig_len, p2_orig_len = self.format_data(label, p1, p2)
             label_tensor = label_tensor
+            p1_orig_len = self.get_masked_matrix(p1_orig_len)
+            p2_orig_len = self.get_masked_matrix(p2_orig_len)
             if self.cuda == str(1):
                 word_tensor1 = word_tensor1.cuda()
                 word_tensor2 = word_tensor2.cuda()
+                p1_orig_len = p1_orig_len.cuda()
+                p2_orig_len = p2_orig_len.cuda()
                 label_tensor = label_tensor.cuda()
 
             predicted = 0
@@ -57,14 +70,26 @@ class Model(object):
         elif self.model_type == 3:
             word_tensor1, word_tensor2, word_aux1, word_aux2, label_tensor,\
                     p1_orig_len, p2_orig_len = self.format_data(label, p1, p2)
+            p1_orig_len, p1_orig_len_aux = p1_orig_len
+            p2_orig_len, p2_orig_len_aux = p2_orig_len
+            p1_orig_len = self.get_masked_matrix(p1_orig_len)
+            p2_orig_len = self.get_masked_matrix(p2_orig_len)
+            p1_orig_len_aux = self.get_masked_matrix(p1_orig_len_aux)
+            p2_orig_len_aux = self.get_masked_matrix(p2_orig_len_aux)
             label_tensor = label_tensor
             if self.cuda == str(1):
                 word_tensor1 = word_tensor1.cuda()
                 word_tensor2 = word_tensor2.cuda()
                 word_aux1 = word_aux1.cuda()
                 word_aux2 = word_aux2.cuda()
+                p1_orig_len = p1_orig_len.cuda()
+                p2_orig_len = p2_orig_len.cuda()
+                p1_orig_len_aux = p1_orig_len_aux.cuda()
+                p2_orig_len_aux = p2_orig_len_aux.cuda()
                 label_tensor = label_tensor.cuda()
 
+            p1_orig_len = (p1_orig_len, p1_orig_len_aux)
+            p2_orig_len = (p2_orig_len, p2_orig_len_aux)
             predicted = 0
             loss = 0
             predicted = self.model((word_tensor1, word_aux1), (word_tensor2, word_aux2), \
@@ -82,7 +107,7 @@ class Model(object):
             p1_orig_length = []
             # Construct GloVe for each word, and find max word length (for one sentence)
             for each in p1:
-                p1_orig_length.append(len(each))
+                p1_orig_length.append(min(len(each), self.clip_length))
                 aux = []
                 for i in range(min(len(each), self.clip_length)):
                     if each[i] in self.word2idx:
@@ -101,7 +126,7 @@ class Model(object):
             p2_orig_length = []
             # Construct GloVe for each word, and find max word length (for other sentence)
             for each in p2:
-                p2_orig_length.append(len(each))
+                p2_orig_length.append(min(len(each), self.clip_length))
                 aux = []
                 for i in range(min(len(each), self.clip_length)):
                     if each[i] in self.word2idx:
@@ -169,7 +194,7 @@ class Model(object):
             p1_orig_length_aux = []
             # Construct GloVe for each word, and find max word length (for one sentence)
             for each in p1[1]:
-                p1_orig_length.append(len(each))
+                p1_orig_length_aux.append(min(len(each), self.clip_length))
                 aux = []
                 for i in range(min(len(each), self.clip_length)):
                     if each[i] in self.word2idx:
@@ -188,7 +213,7 @@ class Model(object):
             p2_orig_length_aux = []
             # Construct GloVe for each word, and find max word length (for other sentence)
             for each in p2[1]:
-                p2_orig_length.append(len(each))
+                p2_orig_length_aux.append(min(len(each), self.clip_length))
                 aux = []
                 for i in range(min(len(each), self.clip_length)):
                     if each[i] in self.word2idx:
@@ -209,7 +234,7 @@ class Model(object):
             label = torch.LongTensor([int(each) for each in label])
 
             return (word_p1_inp, word_p2_inp, word_p1_inp_aux, word_p2_inp_aux, label,\
-                    p1_orig_length, p2_orig_length)
+                    (p1_orig_length, p1_orig_length_aux), (p2_orig_length, p2_orig_length_aux))
 
 
     def set_labels(self, value):
