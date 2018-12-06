@@ -16,6 +16,7 @@ class Model(object):
         print("Reading Glove File")
         self.words = []
         self.word2idx = {}
+        self.id2word = {}
         idx = 1
         vectors = []
         self.word2idx['<pad>'] = 0
@@ -27,6 +28,7 @@ class Model(object):
                 word, vec = l.split(' ', 1)
                 idx += 1
                 self.word2idx[word] = idx
+                self.id2word[idx] = word
                 vect = np.fromstring(vec, sep=' ')
                 vectors.append(vect)
                 #if idx == 100:
@@ -37,8 +39,7 @@ class Model(object):
             embeddings[i] = vectors[i]
 
         embeddings = np.asarray(embeddings)
-        bp()
-        self.model = Matcher(args, class_size, embeddings, idx + 1)
+        self.model = Matcher(args, class_size, embeddings, idx)
         self.criterion = torch.nn.CrossEntropyLoss()
 
         if self.cuda == str(1):
