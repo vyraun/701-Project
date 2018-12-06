@@ -27,12 +27,17 @@ class Model(object):
                 word, vec = l.split(' ', 1)
                 idx += 1
                 self.word2idx[word] = idx
-                vect = np.asarray(np.fromstring(vec, sep=' ')).astype(np.float)
+                vect = np.fromstring(vec, sep=' ')
                 vectors.append(vect)
-                if idx == 100:
-                    break
+                #if idx == 100:
+                #    break
         print("Read the Glove file")
-        embeddings = np.asarray(vectors)
+        embeddings = np.zeros((idx, self.wembed_size))
+        for i in range(idx):
+            embeddings[i] = vectors[i]
+
+        embeddings = np.asarray(embeddings)
+        bp()
         self.model = Matcher(args, class_size, embeddings, idx + 1)
         self.criterion = torch.nn.CrossEntropyLoss()
 

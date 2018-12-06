@@ -147,6 +147,8 @@ class Matcher(nn.Module):
             else:
                 trans_features = torch.cat([trans_features, trans_matrix_res], dim=1)
 
+        trans_features = self.dropout(trans_features)
+
         if self.model_type == 1:
             output = self.ltr(trans_features)
             return output
@@ -168,7 +170,7 @@ class Matcher(nn.Module):
                            torch.cat([p2_output[0,:,:], p2_output[1,:,:]], dim=-1)], dim=-1)
 
         output = self.attentive_linear(output)
-
+        output = self.dropout(output)
         # Both functions combined together
         if self.model_type == 2:
             output = torch.cat([output, trans_features], dim=-1)
@@ -198,6 +200,7 @@ class Matcher(nn.Module):
 
         if self.model_type == 3:
             output = torch.cat([output, trans_features, trans_aux_features], dim=-1)
+            self.dropout(output)
             output = self.ltr(output)
             return output
 
