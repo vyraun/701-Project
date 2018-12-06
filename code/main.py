@@ -17,11 +17,11 @@ Options:
     --dev-src=<file>                        dev source file [default: ../data/quora/dev_tokenized.tsv]
     --test-src=<file>                       test source file [default: ../data/quora/test_tokenized.tsv]
     --vocab-src=<file>                      vocab source file [default: ../data/quora/vocab.pkl]
-    --aux-data-train=<file>                 auxilliary file for retrieval based testing [default: ../data/quora/train_tokenized.tsv]
+    --aux-data-train=<file>                 auxilliary file for retrieval based testing [default: ../data/quora/train_fix.tsv]
     --aux-data-dev=<file>                   auxilliary file for retrieval based testing [default: ../data/quora/dev_tokenized.tsv]
     --aux-data-test=<file>                  auxilliary file for retrieval based testing [default: ../data/quora/test_tokenized.tsv]
-    --model-path=<file>                     model path [default: ../data/models/model.bin]
-    --optim-path=<file>                     optimiser state path [default: ../data/models/optim.bin]
+    --model-path=<file>                     model path [default: ../data/models/model_test.bin]
+    --optim-path=<file>                     optimiser state path [default: ../data/models/optim_test.bin]
     --glove-path=<file>                     pretrained glove embedding file [default: ../data/glove/glove.840B.300d.txt]
     --seed=<int>                            seed [default: 0]
     --batch-size=<int>                      batch size [default: 64]
@@ -40,7 +40,7 @@ Options:
     --lr-decay=<float>                      learning rate decay [default: 0.5]
     --lr=<float>                            learning rate [default: 0.001]
     --save-to=<file>                        model save path
-    --valid-niter=<int>                     perform validation after how many iterations [default: 800]
+    --valid-niter=<int>                     perform validation after how many iterations [default: 2400]
     --dropout=<float>                       dropout [default: 0.2]
     --data=<str>                            type of dataset [default: quora]
     --perspective=<int>                     number of perspectives for the model [default: 20]
@@ -226,7 +226,7 @@ def test(args):
         label = network.get_label(labels)
         total_correct += (pred == label).sum().float()
     final_acc = total_correct / total_examples
-    print('Accuracy of the model is %.2f' % (final_acc), file=sys.stderr)
+    print('Accuracy of the model is %.4f' % (final_acc), file=sys.stderr)
    
 def main(args):
     if args['train']:

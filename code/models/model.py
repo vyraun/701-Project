@@ -41,9 +41,10 @@ class Model(object):
         embeddings = np.asarray(embeddings)
         self.model = Matcher(args, class_size, embeddings, idx)
         self.criterion = torch.nn.CrossEntropyLoss()
-
+        self.criterion2 = torch.nn.BCELoss()
         if self.cuda == str(1):
             self.criterion = self.criterion.cuda()
+            self.creterion2 = self.criterion2.cuda()
 
     def get_masked_matrix(self, input_lengths):
         matrix = []
@@ -107,6 +108,16 @@ class Model(object):
         return None
 
     def format_data(self, label, p1, p2):
+
+        #labeller = []
+        #for each in label:
+        #    val = int(each)
+        #    if val == 0:
+        #        labeller.append([1, 0])
+        #    else:
+        #        labeller.append([0, 1])
+        label = torch.LongTensor(label)
+
         if self.model_type == 1 or self.model_type == 2:
             word_p1_inp = []
             maxp1 = 0
@@ -149,7 +160,7 @@ class Model(object):
             word_p2_inp = pad_sequence(word_p2_inp, batch_first=True)
 
             # Initiliase label tensor
-            label = torch.LongTensor([int(each) for each in label])
+            #label = torch.LongTensor([int(each) for each in label])
 
             return (word_p1_inp, word_p2_inp, label,\
                     p1_orig_length, p2_orig_length)
@@ -237,7 +248,15 @@ class Model(object):
 
 
             # Initiliase label tensor
-            label = torch.LongTensor([int(each) for each in label])
+            #labeller = []
+            #for each in label:
+            #    val = int(each)
+            #    if val == 0:
+            #        labeller.append([1, 0])
+            #    else:
+            #        labeller.append([0, 1])
+            #label = torch.LongTensor(labeller)
+            #label = torch.LongTensor([int(each) for each in label])
 
             return (word_p1_inp, word_p2_inp, word_p1_inp_aux, word_p2_inp_aux, label,\
                     (p1_orig_length, p1_orig_length_aux), (p2_orig_length, p2_orig_length_aux))

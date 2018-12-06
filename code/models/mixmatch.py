@@ -30,11 +30,16 @@ class Matcher(nn.Module):
                                         embedding_dim=self.w_embed_size)
 
         #initliase with pre-trained embeddings
-        self.wembeddings.weight.data.copy_(torch.from_numpy(wembeddings))
+        #self.wembeddings.weight.data.copy_(torch.from_numpy(wembeddings))
 
         #context representation layer
         if self.rnn_type == 'gru':
             self.context = nn.GRU(input_size=self.w_embed_size, \
+                                  hidden_size=self.bi_hidden, \
+                                  num_layers=self.context_layer_size, \
+                                  bidirectional=True)
+        if self.rnn_type == 'lstm':
+            self.context = nn.LSTM(input_size=self.w_embed_size, \
                                   hidden_size=self.bi_hidden, \
                                   num_layers=self.context_layer_size, \
                                   bidirectional=True)
@@ -44,10 +49,17 @@ class Matcher(nn.Module):
             setattr(self, f'w{i}', nn.Parameter(torch.rand(1, 1, self.bi_hidden, self.l)))
 
         #aggregation layer
-        self.aggregation = nn.GRU(input_size=self.l * 4, \
+        if self.rnn_type == 'gru':
+            self.aggregation = nn.GRU(input_size=self.l * 4, \
                                     hidden_size=self.bi_hidden, \
                                     num_layers=self.context_layer_size, \
                                     bidirectional=True)
+        if self.rnn_type == 'lstm':
+            self.aggregation = nn.LSTM(input_size=self.l * 4, \
+                                    hidden_size=self.bi_hidden, \
+                                    num_layers=self.context_layer_size, \
+                                    bidirectional=True)
+
 
         #dropout layer
         self.dropout = nn.Dropout(self.dropout_val)
@@ -60,6 +72,7 @@ class Matcher(nn.Module):
         elif self.model_type == 3:
             self.ltr = nn.Linear(len(self.mu_list) * 3, self.classes)
         self.init_weights()
+        self.wembeddings.weight.data.copy_(torch.from_numpy(wembeddings))
 
     def init_weights(self):
         for param in list(self.parameters()):
@@ -113,6 +126,9 @@ class Matcher(nn.Module):
             if self.rnn_type == 'gru':
                 context1_full, context1_lh = self.context(p1_input.transpose(0, 1))
                 context2_full, context2_lh = self.context(p2_input.transpose(0, 1))
+            if self.rnn_type == 'lstm':
+                context1_full, (context1_lh, _) = self.context(p1_input.transpose(0, 1))
+                context2_full, (context2_lh, _) = self.context(p2_input.transpose(0, 1))
 
             context1_forw, context1_back = torch.split(context1_full, self.bi_hidden, 2)
             context1_lh_forw, context1_lh_back = context1_lh[0], context1_lh[1]
@@ -165,6 +181,10 @@ class Matcher(nn.Module):
         if self.rnn_type == 'gru':
             _, p1_output = self.aggregation(aggr_p1)
             _, p2_output = self.aggregation(aggr_p2)
+        if self.rnn_type == 'lstm':
+            _, (p1_output, _) = self.aggregation(aggr_p1)
+            _, (p2_output, _) = self.aggregation(aggr_p2)
+
 
         output = torch.cat([torch.cat([p1_output[0,:,:], p1_output[1,:,:]], dim=-1), \
                            torch.cat([p2_output[0,:,:], p2_output[1,:,:]], dim=-1)], dim=-1)

@@ -1,5 +1,6 @@
 import codecs
 import math
+import numpy as np
 from tqdm import tqdm
 from pdb import set_trace as bp
 
@@ -21,13 +22,13 @@ def read_data(file_path, data_type):
     else:
         return "Not Implemented the rest"
 
-def batch_iter(model_type, data, batch_size, shuffle=False):
+def batch_iter(model_type, data, batch_size, shuffle=True):
 
     if model_type == 1 or model_type == 2:
         batch_num = math.ceil((len(data) / batch_size))
         index_array = list(range(len(data)))
         if shuffle:
-            np.shuffle.random(index_array)
+            np.random.shuffle(index_array)
         for i in range(batch_num):
             indices = index_array[i * (batch_size): (i + 1) * batch_size]
             examples = [data[idx] for idx in indices]
