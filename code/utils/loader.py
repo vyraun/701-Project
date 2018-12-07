@@ -42,7 +42,7 @@ def batch_iter(model_type, data, batch_size, shuffle=True):
         batch_num = math.ceil((len(data[0]) / batch_size))
         index_array = list(range(len(data[0])))
         if shuffle:
-            np.shuffle.random(index_array)
+            np.random.shuffle(index_array)
         for i in range(batch_num):
             indices = index_array[i * (batch_size): (i + 1) * batch_size]
             examples = [data[0][idx] for idx in indices]

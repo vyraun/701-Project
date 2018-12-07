@@ -17,9 +17,9 @@ Options:
     --dev-src=<file>                        dev source file [default: ../data/quora/dev_tokenized.tsv]
     --test-src=<file>                       test source file [default: ../data/quora/test_tokenized.tsv]
     --vocab-src=<file>                      vocab source file [default: ../data/quora/vocab.pkl]
-    --aux-data-train=<file>                 auxilliary file for retrieval based testing [default: ../data/quora/train_fix.tsv]
-    --aux-data-dev=<file>                   auxilliary file for retrieval based testing [default: ../data/quora/dev_tokenized.tsv]
-    --aux-data-test=<file>                  auxilliary file for retrieval based testing [default: ../data/quora/test_tokenized.tsv]
+    --aux-data-train=<file>                 auxilliary file for retrieval based testing [default: ../data/quora/train_aux.tsv]
+    --aux-data-dev=<file>                   auxilliary file for retrieval based testing [default: ../data/quora/dev_aux.tsv]
+    --aux-data-test=<file>                  auxilliary file for retrieval based testing [default: ../data/quora/test_aux.tsv]
     --model-path=<file>                     model path [default: ../data/models/model_test.bin]
     --optim-path=<file>                     optimiser state path [default: ../data/models/optim_test.bin]
     --glove-path=<file>                     pretrained glove embedding file [default: ../data/glove/glove.840B.300d.txt]
@@ -49,6 +49,7 @@ Options:
     --model-type=<int>                      takes three options 1, 2 and 3 [default: 3]
 """
 
+from tqdm import tqdm
 from docopt import docopt
 from pdb import set_trace as bp
 from models.model import Model
@@ -217,9 +218,8 @@ def test(args):
         softmax = softmax.cuda()
 
     network.model.eval()
-    for labels, p1, p2 in loader.batch_iter(model_type, test_data, batch_size):
+    for labels, p1, p2 in tqdm(loader.batch_iter(model_type, test_data, batch_size)):
         total_examples += len(labels)
-        print(total_examples)
         pred, _ = network.forward(labels, p1, p2)
         pred = softmax(pred)
         _, pred = pred.max(dim=1)

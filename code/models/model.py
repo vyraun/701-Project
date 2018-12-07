@@ -171,7 +171,7 @@ class Model(object):
             p1_orig_length = []
             # Construct GloVe for each word, and find max word length (for one sentence)
             for each in p1[0]:
-                p1_orig_length.append(len(each))
+                p1_orig_length.append(min(len(each), self.clip_length))
                 aux = []
                 for i in range(min(len(each), self.clip_length)):
                     if each[i] in self.word2idx:
@@ -190,7 +190,7 @@ class Model(object):
             p2_orig_length = []
             # Construct GloVe for each word, and find max word length (for other sentence)
             for each in p2[0]:
-                p2_orig_length.append(len(each))
+                p2_orig_length.append(min(len(each), self.clip_length))
                 aux = []
                 for i in range(min(len(each), self.clip_length)):
                     if each[i] in self.word2idx:

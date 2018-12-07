@@ -189,6 +189,7 @@ class Matcher(nn.Module):
         output = torch.cat([torch.cat([p1_output[0,:,:], p1_output[1,:,:]], dim=-1), \
                            torch.cat([p2_output[0,:,:], p2_output[1,:,:]], dim=-1)], dim=-1)
 
+        output = self.dropout(output)
         output = self.attentive_linear(output)
         output = self.dropout(output)
         # Both functions combined together
