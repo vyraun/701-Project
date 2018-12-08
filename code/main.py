@@ -1,7 +1,7 @@
 # coding=utf-8
 
 """
-Implementation of Bilateral Multi Perspective Matching in PyTorch
+Implementation of 701 Model in PyTorch
 
 Usage:
     main.py vocab
