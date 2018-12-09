@@ -11,6 +11,7 @@ Quora Dataset, Semantic Textual Similarity
 
 
 * Seting up on aws: conda install faiss-cpu -c pytorch
+* pip install tensorflow tensorflow_hub
   >>> import nltk
   >>> nltk.download('stopwords')
   >>> nltk.download('punkt')
