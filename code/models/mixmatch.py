@@ -29,9 +29,6 @@ class Matcher(nn.Module):
         self.wembeddings = nn.Embedding(num_embeddings=word_vocab,\
                                         embedding_dim=self.w_embed_size)
 
-        #initliase with pre-trained embeddings
-        #self.wembeddings.weight.data.copy_(torch.from_numpy(wembeddings))
-
         #context representation layer
         if self.rnn_type == 'gru':
             self.context = nn.GRU(input_size=self.w_embed_size, \

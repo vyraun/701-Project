@@ -18,6 +18,7 @@ Options:
     --test-src=<file>                       test source file [default: ../data/quora/test_tokenized.tsv]
     --vocab-src=<file>                      vocab source file [default: ../data/quora/vocab.pkl]
     --aux-data-train=<file>                 auxilliary file for retrieval based testing [default: ../data/quora/train_aux.tsv]
+    --vocab-data-pkl=<file>                 file for vocab [default: ../data/quora/tokens_dump.pkl]
     --aux-data-dev=<file>                   auxilliary file for retrieval based testing [default: ../data/quora/dev_aux.tsv]
     --aux-data-test=<file>                  auxilliary file for retrieval based testing [default: ../data/quora/test_aux.tsv]
     --model-path=<file>                     model path [default: ../data/models/model_test.bin]

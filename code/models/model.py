@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import pickle
 from torch.nn.utils.rnn import pad_sequence
 from pdb import set_trace as bp
 from models.mixmatch import Matcher
@@ -13,6 +14,7 @@ class Model(object):
         self.clip_length = int(args['--len-clip'])
         self.glove_path = args['--glove-path']
         self.model_type = int(args['--model-type'])
+        self.vocab_data = pickle.load(open(args['--vocab-data-pkl'], 'rb'))
         print("Reading Glove File")
         self.words = []
         self.word2idx = {}
@@ -26,13 +28,14 @@ class Model(object):
         with open(self.glove_path) as f:
             for l in f:
                 word, vec = l.split(' ', 1)
-                idx += 1
-                self.word2idx[word] = idx
-                self.id2word[idx] = word
-                vect = np.fromstring(vec, sep=' ')
-                vectors.append(vect)
-                #if idx == 100:
-                #    break
+                if word in self.vocab_data:
+                    idx += 1
+                    self.word2idx[word] = idx
+                    self.id2word[idx] = word
+                    vect = np.fromstring(vec, sep=' ')
+                    vectors.append(vect)
+                    #if idx == 100:
+                    #    break
         print("Read the Glove file")
         embeddings = np.zeros((idx, self.wembed_size))
         for i in range(idx):
