@@ -8,3 +8,9 @@ Quora Dataset, Semantic Textual Similarity
 * https://github.com/facebookresearch/faiss/blob/master/INSTALL.md
 * https://stackoverflow.com/questions/36659453/intel-mkl-fatal-error-cannot-load-libmkl-avx2-so-or-libmkl-def-so
 * https://docs.continuum.io/mkl-optimizations/
+
+
+* Seting up on aws: conda install faiss-cpu -c pytorch
+  >>> import nltk
+  >>> nltk.download('stopwords')
+  >>> nltk.download('punkt')
