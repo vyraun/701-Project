@@ -26,7 +26,7 @@ stop_words = set(stopwords.words('english'))
 # German = load_vectors('/home/vraunak/Desktop/wembeddings/wiki.multi.en.vec.txt')
 
 German = {}
-f = open('../glove.6B.300d.txt')
+f = open('glove.6B.300d.txt')
 print("Loading Glove vectors.")
 for line in f:
     values = line.split()
@@ -125,13 +125,10 @@ print("Index Built = {0}, Total Vectors = {1}".format(index.is_trained, index.nt
 
 
 def return_knn(words):
-    # print("----------------------")
+
     X_search = np.asarray([German[word] for word in words], dtype=np.float32).reshape((len(words), 300))
-    # print("----------------------")
-    k = 2
-    print(X_search.shape)
+    k = 2                              
     D, I = index.search(X_search, k)
-    print("----------------------")
     return words, X_train_German_names[I]
 
 
@@ -156,10 +153,10 @@ def knn_quora(filename):
             print("Line ", j)
             
             if skip:
-                if j == 20:
+                if j == 100:
                     break
-                if line[1]!='' and line[2]!='' and line[3]!='':
-                    q1, q2 = nltk.word_tokenize(line[1]), nltk.word_tokenize(line[2])
+                if line[3]!='' and line[4]!='' and line[5]!='':
+                    q1, q2 = nltk.word_tokenize(line[3]), nltk.word_tokenize(line[4])
                     q1 = [word.lower() for word in q1 if word.isalpha()]
                     q2 = [word.lower() for word in q2 if word.isalpha()]
                     for word in q1:
@@ -176,7 +173,7 @@ def knn_quora(filename):
                                 knn_dict[word] = 1
             else:
                 skip = True
-    print("----------------------")            
+                
     return knn_dict.keys()
 
 
@@ -184,7 +181,7 @@ def knn_quora(filename):
 
 
 import csv
-quora_file = '../train.tsv'
+quora_file = 'quora_duplicate_questions.tsv'
 print("Quora Run STarted")
 
 words, nns = return_knn(knn_quora(quora_file))
