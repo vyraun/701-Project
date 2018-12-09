@@ -26,7 +26,7 @@ stop_words = set(stopwords.words('english'))
 # German = load_vectors('/home/vraunak/Desktop/wembeddings/wiki.multi.en.vec.txt')
 
 German = {}
-f = open('../glove.6B.300d.txt')
+f = open('glove.6B.300d.txt')
 print("Loading Glove vectors.")
 for line in f:
     values = line.split()
@@ -159,7 +159,7 @@ def knn_quora(filename):
             print("Line ", j)
             
             if skip:
-                if j == 200000:
+                if j == 20:
                     break
                 if line[3]!='' and line[4]!='' and line[5]!='':
                     q1, q2 = nltk.word_tokenize(line[3]), nltk.word_tokenize(line[4])
@@ -187,7 +187,7 @@ def knn_quora(filename):
 
 
 import csv
-quora_file = '../quora_duplicate_questions.tsv'
+quora_file = 'quora_duplicate_questions.tsv'
 print("Quora Run STarted")
 
 knn_dict = return_knn(knn_quora(quora_file))
